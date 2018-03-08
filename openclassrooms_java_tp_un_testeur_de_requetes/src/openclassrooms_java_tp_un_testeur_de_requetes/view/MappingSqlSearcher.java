@@ -4,14 +4,12 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.HashMap;
-import java.util.Map;
 
 import javax.swing.JTextArea;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.TextArea;
-import openclassrooms_java_jdbc_connexion_simplifiee.SdzConnection2;
+import openclassrooms_java_jdbc_connexion_simplifiee.SdzConnection;
 import openclassrooms_java_tp_un_testeur_de_requetes.Main;
 
 public class MappingSqlSearcher {
@@ -43,7 +41,7 @@ public class MappingSqlSearcher {
 			long durationExecutionRequest = System.currentTimeMillis();
 			
 			// On se connecte à la base
-			Statement state = SdzConnection2.getInstance().createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+			Statement state = SdzConnection.getInstance().createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 			
 			// On execute la requete
 			ResultSet result = state.executeQuery(query);
