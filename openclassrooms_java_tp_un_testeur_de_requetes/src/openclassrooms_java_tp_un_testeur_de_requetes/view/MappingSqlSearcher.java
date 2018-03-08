@@ -4,11 +4,16 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Iterator;
+import java.util.Set;
 
 import javax.swing.JTextArea;
-
 import javafx.fxml.FXML;
 import javafx.scene.control.TextArea;
+
 import openclassrooms_java_jdbc_connexion_simplifiee.SdzConnection;
 import openclassrooms_java_tp_un_testeur_de_requetes.Main;
 
@@ -35,20 +40,64 @@ public class MappingSqlSearcher {
 	
 	@FXML // Permet de lancer le processus, verifier la requete puis la lancer
 	public void runQuery() {
+		long durationExecutionRequest = System.currentTimeMillis();
+		Statement state = null;
+		ResultSet result = null;
+		ResultSetMetaData meta;
 		String query = queryValue.getText();
+		Map<String[], Object[][]> resultQuery = null;
+		String[] collumnName = null;
+		Object[][] lineValue = null;
 		
 		try {
-			long durationExecutionRequest = System.currentTimeMillis();
 			
 			// On se connecte à la base
-			Statement state = SdzConnection.getInstance().createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+			state = SdzConnection.getInstance().createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 			
 			// On execute la requete
-			ResultSet result = state.executeQuery(query);
-			ResultSetMetaData meta = result.getMetaData(); // On récupère les meta pour avoir le nom des collonnes
+			result = state.executeQuery(query);
+			meta = result.getMetaData(); // On récupère les meta pour avoir le nom des collonnes
 			
 			// On appel la méthode qui va lire le resultat de la requete et nous crée un tableau
-			readQueryResult( result, meta );
+			resultQuery = readQueryResult( result, meta );
+			
+			// Parcour de l'objet map
+			Set<Entry<String[], Object[][]>> setHm = resultQuery.entrySet();
+			Iterator<Entry<String[], Object[][]>> it = setHm.iterator();
+			
+			while(it.hasNext()){
+				Entry<String[], Object[][]> e = it.next();
+				//System.out.println(e.getKey() + " : " + e.getValue());
+				
+				collumnName = e.getKey();
+				lineValue = e.getValue();
+				
+				System.out.println("Number Name : " + collumnName.length);
+				System.out.println("Number objet line : " + lineValue.length);
+				
+				
+				// On boucle sur le nombre de nom de colonne
+				for ( int i = 0; i < collumnName.length; i++ ) {
+					
+					System.out.print("name = " +collumnName[i] + " && ");
+					
+				} // FIN for collumnName
+				
+				System.out.println("\n-----------------------------------------------------");
+				
+				// On boucle sur le nombre de ligne de résultat
+				for (int o = 0; o < lineValue.length; o++) {
+					
+					System.out.println( "Ligne : " + o);
+					
+					for ( int p = 0; p < lineValue[o].length; p++ ) {
+						System.out.println( "Nombre de resultat par lignes : " + lineValue[o][p]);
+					}
+					System.out.println( "FIN Ligne : " + o);
+					
+				} // FIN for lineValue
+				
+			} // FIN while
 			
 			//On ferme le tout                                     
 			result.close();
@@ -56,22 +105,39 @@ public class MappingSqlSearcher {
 			
 			durationExecutionRequest = System.currentTimeMillis() - durationExecutionRequest;
 			
+			// On ferme les ressources
+			state.close();
+			result.close();
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}
+		} finally { // Fermetture des objets même lors d'un catch
+			
+			try {
+				// On ferme les ressources
+				if (state != null) { state.close(); }
+				if (result != null)  { result.close(); }
+			
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+		} // FIN finally
 		
-	}
+	} // FIN METHODE FXLM runQuery
 	
 	// Méthode qui se charge de la lecture du résultat de la requete
-	private void readQueryResult( ResultSet resultSet, ResultSetMetaData resultSetMetaData) {
+	private Map<String[], Object[][]> readQueryResult( ResultSet resultSet, ResultSetMetaData resultSetMetaData) {
+		Integer columnNumber = null;
+		Integer j = 0; // variable à incrémenté pour simuler chaque ligne du résultat de la requête
+		String[] columnName = null;
+		Object[][] lineValue = null;
+		Map<String[], Object[][]> objectReturn = new HashMap<>();
+		
 		try {
-			Integer columnNumber = resultSetMetaData.getColumnCount();
-			Integer j = 0; // variable à incrémenté pour simuler chaque ligne du résultat de la requête
-			String[] columnName = null;
-			Object[][] lineValue = null;
-			
-			
+			// On récupère le nombre de colonne des metas
+			columnNumber = resultSetMetaData.getColumnCount();
 			
 			// Si les metas contiennent un résultat
 			if ( columnNumber != null && columnNumber != 0 ) {
@@ -106,8 +172,11 @@ public class MappingSqlSearcher {
 					j++; // On incrémente j pour la prochaine ligne
 				} // FIN while
 				
-			} else {
+				// On remplit la varriable de retour
+				objectReturn.put(columnName, lineValue);
 				
+			} else {
+				System.out.println("PAS DE RESULTAT");
 			} // FIN else
 			
 		} catch (SQLException e) {
@@ -115,7 +184,9 @@ public class MappingSqlSearcher {
 			e.printStackTrace();
 		}
 		
-	}
+		return objectReturn;
+		
+	} // FIN METHODE readQueryResult
 	
 	// Setter permet de récupérer tout le contenu et avoir la main sur l'application, et récupérer la liste des objet observable
 	public void setMainApp(Main mainApp) {
