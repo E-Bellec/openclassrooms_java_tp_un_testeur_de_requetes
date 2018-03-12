@@ -5,24 +5,33 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Iterator;
 import java.util.Set;
 
 import javax.swing.JTextArea;
-import javafx.fxml.FXML;
-import javafx.scene.control.TextArea;
 
+import javafx.beans.property.ReadOnlyStringWrapper;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.fxml.FXML;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.control.TextArea;
+import javafx.scene.layout.BorderPane;
 import openclassrooms_java_jdbc_connexion_simplifiee.SdzConnection;
 import openclassrooms_java_tp_un_testeur_de_requetes.Main;
 
 public class MappingSqlSearcher {
 	
-	@FXML
-	private TextArea queryValue; // varriable qui contiendra la valeur du champs de la requete
+	@FXML // Contenneur du resultat de la requête.
+	private BorderPane borderPaneQueryResult;
+	@FXML // varriable qui contiendra la valeur du champs de la requete
+	private TextArea queryValue;
+	//private double tableViewHeigth = borderPaneQueryResult.getHeight();
+	//private double tableViewWidth = borderPaneQueryResult.getWidth();
 	
-	private Main main;// Varriable qui contient le main, pour avoir la liste des objet observable
 	private String defaultQuery = 
 			"SELECT * FROM public.classe;"; // Text par defaut
 	private JTextArea querySqlFields = new JTextArea(defaultQuery); // Récupération du textArea contenant la requête de l'utilisateur
@@ -40,6 +49,10 @@ public class MappingSqlSearcher {
 	
 	@FXML // Permet de lancer le processus, verifier la requete puis la lancer
 	public void runQuery() {
+		
+		// On vide le contenu On vide là contenue de la précédente requête nue de la précédente requête
+		borderPaneQueryResult.getChildren().clear();
+		
 		long durationExecutionRequest = System.currentTimeMillis();
 		Statement state = null;
 		ResultSet result = null;
@@ -48,6 +61,9 @@ public class MappingSqlSearcher {
 		Map<String[], Object[][]> resultQuery = null;
 		String[] collumnName = null;
 		Object[][] lineValue = null;
+		TableView<ObservableList<String>> tableView = new TableView<ObservableList<String>>();
+		TableColumn<ObservableList<String>, String> tableColumn;
+		ObservableList<ObservableList<String>> data= FXCollections.observableArrayList();
 		
 		try {
 			
@@ -60,50 +76,59 @@ public class MappingSqlSearcher {
 			
 			// On appel la méthode qui va lire le resultat de la requete et nous crée un tableau
 			resultQuery = readQueryResult( result, meta );
+			durationExecutionRequest = System.currentTimeMillis() - durationExecutionRequest; // On récupère le temps d'execution
 			
 			// Parcour de l'objet map
 			Set<Entry<String[], Object[][]>> setHm = resultQuery.entrySet();
 			Iterator<Entry<String[], Object[][]>> it = setHm.iterator();
 			
+			// On parcourt l'objet map, ici on à une seule itération
 			while(it.hasNext()){
+				
 				Entry<String[], Object[][]> e = it.next();
 				//System.out.println(e.getKey() + " : " + e.getValue());
 				
 				collumnName = e.getKey();
 				lineValue = e.getValue();
 				
-				System.out.println("Number Name : " + collumnName.length);
-				System.out.println("Number objet line : " + lineValue.length);
 				
+			} // FIN while
 				
 				// On boucle sur le nombre de nom de colonne
 				for ( int i = 0; i < collumnName.length; i++ ) {
 					
-					System.out.print("name = " +collumnName[i] + " && ");
+					final int finalIdx = i;
+					// On crée une colonnes avec le nom
+					tableColumn = new TableColumn<>( collumnName[i] );
+					// On ajout les valeurs
+					tableColumn.setCellValueFactory(param -> new ReadOnlyStringWrapper(param.getValue().get(finalIdx)));
+					// On ajout le contenue dans le tableau
+					tableView.getColumns().add(tableColumn);
+					
+					System.out.println( "COLONNE  : " + collumnName[i].toUpperCase() );
+					
+					
 					
 				} // FIN for collumnName
 				
-				System.out.println("\n-----------------------------------------------------");
+			// On boucle sur le nombre de ligne de résultat
+			for (int o = 0; o < lineValue.length; o++) {
+				// Iterate Row
+	            ObservableList<String> row = FXCollections.observableArrayList();
 				
-				// On boucle sur le nombre de ligne de résultat
-				for (int o = 0; o < lineValue.length; o++) {
-					
-					System.out.println( "Ligne : " + o);
-					
-					for ( int p = 0; p < lineValue[o].length; p++ ) {
-						System.out.println( "Nombre de resultat par lignes : " + lineValue[o][p]);
-					}
-					System.out.println( "FIN Ligne : " + o);
-					
-				} // FIN for lineValue
+	            // On boucle sur le nb de résultat par lignes
+				for (int p = 0; p < lineValue[o].length; p++) {
+					 row.add(lineValue[o][p].toString());
+				}
 				
-			} // FIN while
-			
-			//On ferme le tout                                     
-			result.close();
-			state.close();
-			
-			durationExecutionRequest = System.currentTimeMillis() - durationExecutionRequest;
+                data.add(row);
+			} // FIN for lineValue
+				
+			// On ajoute le donnée dans la tables
+			tableView.setItems(data);
+			tableView.setPrefHeight(borderPaneQueryResult.getHeight()); // On definit la hauteur du tableau
+			tableView.setPrefWidth(borderPaneQueryResult.getWidth()); // On definit la taille
+			borderPaneQueryResult.setCenter(tableView); // on insert le tout dans le composant graphique borderPane
 			
 			// On ferme les ressources
 			state.close();
@@ -187,13 +212,5 @@ public class MappingSqlSearcher {
 		return objectReturn;
 		
 	} // FIN METHODE readQueryResult
-	
-	// Setter permet de récupérer tout le contenu et avoir la main sur l'application, et récupérer la liste des objet observable
-	public void setMainApp(Main mainApp) {
-		this.main = mainApp;
-		
-	}
-		
-	
 	
 }

@@ -78,29 +78,19 @@ public class Main extends Application {
 		try {
 			//Nous récupérons notre conteneur qui contiendra les données
 			AnchorPane contentApp = (AnchorPane) loader.load();
-			contentPane.setCenter(contentApp);// nous ajoutons à notre conteneur principal au centre, puisque'il s'agit d'un BorderPane
+			
+			// nous ajoutons à notre conteneur principal au centre, puisque'il s'agit d'un BorderPane
+			contentPane.setCenter(contentApp);
 			MappingSqlSearcher mapping = loader.getController();// Nous récupérons notre mappeur via l'objet FXMLLoader
 			
-			//Nous lui passons notre instance de classe pour qu'il puisse récupérer notre liste observable
-			mapping.setMainApp(this);
+			
 			
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 		
 	} // FIN METHODE initializationContent
-	
-	// METHODE initializationCoResultQuery
-	private void initializationCoResultQuery() {
-		
-		//On créé un chargeur de FXML
-		FXMLLoader loader = new FXMLLoader();
-		
-		//On lui spécifie le chemin relatif à notre classe du fichier FXML a charger : dans le sous-dossier view
-		loader.setLocation(Main.class.getResource("view/FxmlResultQuery.fxml"));
-		
-		
-	} // FIN METHOIDE initializationCoResultQuery
+
 	
 	// GETTER
 		// Accesseur du contenneur principale (application)
