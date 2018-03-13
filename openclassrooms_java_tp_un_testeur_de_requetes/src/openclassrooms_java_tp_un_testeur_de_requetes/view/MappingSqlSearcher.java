@@ -1,5 +1,6 @@
 package openclassrooms_java_tp_un_testeur_de_requetes.view;
 
+import java.awt.Dialog;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -16,12 +17,15 @@ import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
 import openclassrooms_java_jdbc_connexion_simplifiee.SdzConnection;
-import openclassrooms_java_tp_un_testeur_de_requetes.Main;
 
 public class MappingSqlSearcher {
 	
@@ -53,7 +57,8 @@ public class MappingSqlSearcher {
 		// On vide le contenu On vide là contenue de la précédente requête nue de la précédente requête
 		borderPaneQueryResult.getChildren().clear();
 		
-		long durationExecutionRequest = System.currentTimeMillis();
+		long durationExecutionRequest;
+		int numberLignesResult = 0;
 		Statement state = null;
 		ResultSet result = null;
 		ResultSetMetaData meta;
@@ -66,17 +71,15 @@ public class MappingSqlSearcher {
 		ObservableList<ObservableList<String>> data= FXCollections.observableArrayList();
 		
 		try {
-			
-			// On se connecte à la base
+			// On initialise le timer PUIS on instancie la connexion avec la base de données
+			durationExecutionRequest = System.currentTimeMillis();
 			state = SdzConnection.getInstance().createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-			
-			// On execute la requete
-			result = state.executeQuery(query);
+			result = state.executeQuery(query);// // On execute la requete
 			meta = result.getMetaData(); // On récupère les meta pour avoir le nom des collonnes
+			durationExecutionRequest = System.currentTimeMillis() - durationExecutionRequest; // On récupère le temps d'execution
 			
 			// On appel la méthode qui va lire le resultat de la requete et nous crée un tableau
-			resultQuery = readQueryResult( result, meta );
-			durationExecutionRequest = System.currentTimeMillis() - durationExecutionRequest; // On récupère le temps d'execution
+			resultQuery = readQueryResult( result, meta ); 
 			
 			// Parcour de l'objet map
 			Set<Entry<String[], Object[][]>> setHm = resultQuery.entrySet();
@@ -91,51 +94,58 @@ public class MappingSqlSearcher {
 				collumnName = e.getKey();
 				lineValue = e.getValue();
 				
-				
 			} // FIN while
 				
-				// On boucle sur le nombre de nom de colonne
-				for ( int i = 0; i < collumnName.length; i++ ) {
-					
-					final int finalIdx = i;
-					// On crée une colonnes avec le nom
-					tableColumn = new TableColumn<>( collumnName[i] );
-					// On ajout les valeurs
-					tableColumn.setCellValueFactory(param -> new ReadOnlyStringWrapper(param.getValue().get(finalIdx)));
-					// On ajout le contenue dans le tableau
-					tableView.getColumns().add(tableColumn);
-					
-					System.out.println( "COLONNE  : " + collumnName[i].toUpperCase() );
-					
-					
-					
-				} // FIN for collumnName
+			// On boucle sur le nombre de nom de colonne
+			for ( int i = 0; i < collumnName.length; i++ ) {
+				
+				final int finalIdx = i;
+				// On crée une colonnes avec le nom
+				tableColumn = new TableColumn<>( collumnName[i] );
+				tableColumn.setCellValueFactory(param -> new ReadOnlyStringWrapper(param.getValue().get(finalIdx))); // On ajout les valeurs
+				tableColumn.setPrefWidth(borderPaneQueryResult.getWidth()/collumnName.length); // On définit la taille de chaque colonne
+				
+				// On ajout le contenue dans le tableau
+				tableView.getColumns().add(tableColumn);
+				
+			} // FIN for collumnName
 				
 			// On boucle sur le nombre de ligne de résultat
 			for (int o = 0; o < lineValue.length; o++) {
 				// Iterate Row
 	            ObservableList<String> row = FXCollections.observableArrayList();
-				
+	            numberLignesResult = 0;
+	            
 	            // On boucle sur le nb de résultat par lignes
 				for (int p = 0; p < lineValue[o].length; p++) {
-					 row.add(lineValue[o][p].toString());
+					numberLignesResult = p;
+					row.add(lineValue[o][p].toString());
 				}
 				
                 data.add(row);
 			} // FIN for lineValue
-				
+			
 			// On ajoute le donnée dans la tables
 			tableView.setItems(data);
 			tableView.setPrefHeight(borderPaneQueryResult.getHeight()); // On definit la hauteur du tableau
 			tableView.setPrefWidth(borderPaneQueryResult.getWidth()); // On definit la taille
 			borderPaneQueryResult.setCenter(tableView); // on insert le tout dans le composant graphique borderPane
-			
+			borderPaneQueryResult.setBottom(
+					new HBox(new Label("La requête à été exécuter en " + durationExecutionRequest + " ms et a retourné " + numberLignesResult + " ligne(s)"))
+			);
+
 			// On ferme les ressources
 			state.close();
 			result.close();
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			
+			// On affiche une erreur
+			Alert bye = new Alert(AlertType.INFORMATION);
+			bye.setTitle("Erreur !");
+			bye.setHeaderText("Il semble qu'il y est un problème avec la requête sql !");
+			bye.setContentText("Message : " + e.getMessage());
+			bye.showAndWait(); // On affiche et on attend la reponse utilisateur
+			
 		} finally { // Fermetture des objets même lors d'un catch
 			
 			try {
